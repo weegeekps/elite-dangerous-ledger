@@ -3,6 +3,10 @@ Ledger web application designed for Elite: Dangerous players to help them track 
 
 # How to set up your development environment
 
+## Code Style Tools
+
+This project uses [ESLint](http://eslint.org/) for maintaining code style. Pull requests that do not conform to the requirements of the rules will not be accepted.
+
 ## Client Side Code
 
 The client side code is found in `./client` and is using the [Ember CLI](http://www.ember-cli.com/) stack. 
@@ -54,6 +58,10 @@ Make use of the many generators for code, try `ember help generate` for more det
 ## Server Side Code
 
 The server side code is found in `./server` and is a [Sails](http://sailsjs.org) application.
+
+## Local MongoDB Setup
+
+From the root directory of the project, execute `mkdir -p .mongo/data`.  Then, run mongo using `mongod -f mongo-local-dev.conf`.
 
 # Deployment Instructions
 
