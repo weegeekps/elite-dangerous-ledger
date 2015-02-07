@@ -1,11 +1,11 @@
 # elite-dangerous-ledger
-Ledger application designed for Elite: Dangerous players to help them track their profits and expenses.
+Ledger web application designed for Elite: Dangerous players to help them track their profits and expenses.
 
 # How to set up your development environment
 
 ## Client Side Code
 
-The client side code is found in `./client` and is using the Ember-CLI stack. 
+The client side code is found in `./client` and is using the [Ember CLI](http://www.ember-cli.com/) stack. 
 
 ### Prerequisites
 
@@ -55,6 +55,6 @@ Make use of the many generators for code, try `ember help generate` for more det
 
 The server side code is found in `./server` and is a [Sails](http://sailsjs.org) application.
 
-## Deployment
+# Deployment Instructions
 
 TODO: Write deployment instructions.
