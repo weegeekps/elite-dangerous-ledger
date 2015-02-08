@@ -29,3 +29,6 @@ node_modules
 
 # MongoDB Database Stuff
 .mongo
+
+# IDEA
+.idea
