@@ -1,14 +1,19 @@
+'use strict';
+
 var express = require('express');
+var passport = require('passport');
+var GoogleTokenStrategy = require('passport-google-token');
 var path = require('path');
-var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
 var app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -20,10 +25,42 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
+// MongoDB connection
+var dbConnect = function() {
+    mongoose.connect('mongodbb://localhost/elite-dangerous-ledger', {
+        server: {
+            socketOptions: {
+                keepAlive: 1
+            }
+        }
+    });
+};
+dbConnect(); // Initial connection
+
+mongoose.connection.on('error', console.log);
+mongoose.connection.on('disconnected', dbConnect());
+
+// Passport setup
+var User = require('models/user');
+passport.use(new GoogleTokenStrategy({
+    clientID: '519041885826-dgg3c3vhqh0dj784lbhid3fqns45hhdo.apps.googleusercontent.com',
+    clientSecret: 'tBzHAlqZCW9SP5f1lPq_AUHC'
+  },
+  function(accessToken, refreshToken, profile, done) {
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return done(err, user);
+    });
+  }
+));
+
+// Authentication Routes
+app.post('/auth/google/token', passport.authenticate('google-token'), function (req, res) {
+    res.send(req.user);
+});
+
+// Routes
 app.use('/', routes);
-app.use('/users', users);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
