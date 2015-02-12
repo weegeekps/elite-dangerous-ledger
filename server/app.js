@@ -2,71 +2,100 @@
 
 var express = require('express');
 var passport = require('passport');
-var GoogleTokenStrategy = require('passport-google-token');
+var GoogleAuthCodeStrategy = require('passport-google-authcode').Strategy;
 var path = require('path');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var authRoutes = require('./routes/auth');
 
 var app = express();
+app.listen(8081);
 
+if (app.get('env') === 'development') {
+	var cors = require('express-cors');
+	app.use(cors({
+		allowedOrigins: ['localhost:*']
+	}));
+}
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+//app.set('views', path.join(__dirname, 'views'));
+//app.set('view engine', 'jade');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 
 // MongoDB connection
-var dbConnect = function() {
-    mongoose.connect('mongodbb://localhost/elite-dangerous-ledger', {
-        server: {
-            socketOptions: {
-                keepAlive: 1
-            }
-        }
-    });
+var dbConnect = function () {
+	mongoose.connect('mongodb://localhost/elite-dangerous-ledger', {
+		server: {
+			socketOptions: {
+				keepAlive: 1
+			}
+		}
+	});
 };
 dbConnect(); // Initial connection
 
 mongoose.connection.on('error', console.log);
-mongoose.connection.on('disconnected', dbConnect());
+mongoose.connection.on('disconnected', dbConnect);
 
 // Passport setup
-var User = require('models/user');
-passport.use(new GoogleTokenStrategy({
-    clientID: '519041885826-dgg3c3vhqh0dj784lbhid3fqns45hhdo.apps.googleusercontent.com',
-    clientSecret: 'tBzHAlqZCW9SP5f1lPq_AUHC'
-  },
-  function(accessToken, refreshToken, profile, done) {
-    User.findOrCreate({ googleId: profile.id }, function (err, user) {
-      return done(err, user);
-    });
-  }
+var User = require('./models/user');
+passport.use(new GoogleAuthCodeStrategy({
+		clientID: '519041885826-dgg3c3vhqh0dj784lbhid3fqns45hhdo.apps.googleusercontent.com',
+		clientSecret: 'tBzHAlqZCW9SP5f1lPq_AUHC',
+		callbackURL: 'http://localhost:4200/'
+	},
+	function (accessToken, refreshToken, profile, done) {
+		User.findOne({googleId: profile.id}, function (err, user) {
+			if (err) {
+				return done(err);
+			}
+
+			if (!user) {
+				// We need to create the user.
+				// TODO: Query google for the profile information.
+
+				user = new User({
+					name: profile.username,
+					email: profile.email,
+					googleId: profile.id
+				});
+
+				user.save(function(err) {
+					if (err) { console.error(err); }
+
+					return done(err, user);
+				});
+			} else {
+				return done(err, user);
+			}
+		});
+	}
 ));
 
 // Authentication Routes
-app.post('/auth/google/token', passport.authenticate('google-token'), function (req, res) {
-    res.send(req.user);
-});
+/*app.post('/auth/google/token', passport.authenticate('google-token'), function (req, res) {
+ res.send(req.user);
+ });*/
 
 // Routes
-app.use('/', routes);
+//app.use('/', routes);
+app.use('/auth', authRoutes);
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
+app.use(function (req, res, next) {
+	var err = new Error('Not Found');
+	err.status = 404;
+	next(err);
 });
 
 // error handlers
@@ -74,23 +103,25 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-    app.use(function(err, req, res, next) {
-        res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
-    });
+	app.use(function (err, req, res, next) {
+		res.status(err.status || 500);
+		/*res.render('error', {
+		 message: err.message,
+		 error: err
+		 });*/
+		res.json(err.message);
+	});
 }
 
 // production error handler
 // no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
+app.use(function (err, req, res, next) {
+	res.status(err.status || 500);
+	/*res.render('error', {
+	 message: err.message,
+	 error: {}
+	 });*/
+	res.json(err.message);
 });
 
 
