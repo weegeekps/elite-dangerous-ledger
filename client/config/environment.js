@@ -47,7 +47,7 @@ module.exports = function (environment) {
 		providers: {
 			'google-oauth2': {
 				apiKey: '519041885826-dgg3c3vhqh0dj784lbhid3fqns45hhdo.apps.googleusercontent.com',
-				scope: 'profile',
+				scope: 'profile email',
 				redirectUri: 'http://localhost:4200/' // TODO: Make this configurable by environment.
 			}
 		}

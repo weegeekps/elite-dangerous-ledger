@@ -3,6 +3,7 @@
 var express = require('express');
 var passport = require('passport');
 var GoogleAuthCodeStrategy = require('passport-google-authcode').Strategy;
+//var BearerStrategy = require('passport-http-bearer');
 var path = require('path');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
@@ -49,38 +50,54 @@ mongoose.connection.on('disconnected', dbConnect);
 
 // Passport setup
 var User = require('./models/user');
+app.use(passport.initialize());
 passport.use(new GoogleAuthCodeStrategy({
 		clientID: '519041885826-dgg3c3vhqh0dj784lbhid3fqns45hhdo.apps.googleusercontent.com',
 		clientSecret: 'tBzHAlqZCW9SP5f1lPq_AUHC',
 		callbackURL: 'http://localhost:4200/'
 	},
 	function (accessToken, refreshToken, profile, done) {
-		User.findOne({googleId: profile.id}, function (err, user) {
+		User.findOne({googleId: profile.id}).select('+accessToken').exec(function (err, user) {
 			if (err) {
 				return done(err);
 			}
 
 			if (!user) {
 				// We need to create the user.
-				// TODO: Query google for the profile information.
-
 				user = new User({
-					name: profile.username,
-					email: profile.email,
-					googleId: profile.id
-				});
-
-				user.save(function(err) {
-					if (err) { console.error(err); }
-
-					return done(err, user);
+					name: profile.name.givenName + ' ' + profile.name.familyName,
+					email: profile.emails[0].value,
+					googleId: profile.id,
+					accessToken: accessToken
 				});
 			} else {
-				return done(err, user);
+				// Update user with new access token. This will invalidate other sessions.
+				user.name = profile.name.givenName + ' ' + profile.name.familyName;
+				user.accessToken = accessToken;
 			}
+
+			user.save(function (err) {
+				if (err) {
+					done(err);
+				}
+
+				return done(null, user);
+			});
 		});
 	}
 ));
+
+/*passport.use(new BearerStrategy(
+ function (token, done) {
+ User.findOne({accessToken: token}, function (err, user) {
+ if (err) { return done(err); }
+
+ if (!user) { return done(err, false); }
+
+ return done(null, user, {scope: 'all'});
+ });
+ }
+ ));*/
 
 // Authentication Routes
 /*app.post('/auth/google/token', passport.authenticate('google-token'), function (req, res) {
